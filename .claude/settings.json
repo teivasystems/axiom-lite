@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(npm run *)",
+      "Bash(now-sdk *)",
+      "Bash(npx @servicenow/sdk explain *)"
+    ]
+  }
+}

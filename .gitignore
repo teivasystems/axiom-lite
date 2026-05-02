@@ -1,0 +1,27 @@
+# now-sdk
+.sdk/
+*.token
+now.config.local.json
+
+# Build output
+dist/
+build/
+*.pkg
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+
+# Claude Code — local settings contain credentials, not committed
+.claude/settings.local.json
+.claude/worktrees/
+
+# Temp
+*.tmp
+.cache/
