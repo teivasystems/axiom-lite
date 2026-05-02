@@ -1,5 +1,5 @@
 # Skill — ServiceNow Fluent SDK (now-sdk 4.6.0)
-**Jordan | axiom-lite | dev390976.service-now.com**
+**Jordan | axiom-lite | &lt;YOUR_INSTANCE&gt;.service-now.com**
 
 ---
 
@@ -41,10 +41,10 @@ TIER 3 — Background Script (manual fallback)
 
 ---
 
-## Scope naming — dev390976
+## Scope naming — <YOUR_INSTANCE>
 
-Vendor prefix for this instance: **9274**
-Pattern: `x_9274_<appname>`
+Vendor prefix for this instance: **<VENDOR_PREFIX>**
+Pattern: `x_<VENDOR_PREFIX>_<appname>`
 
 Never use `x_snc_`. Check `now.config.json` before every session.
 
@@ -90,9 +90,9 @@ snc --version   # verify
 snc init \
   --appName    "My App" \
   --packageName "my-app" \
-  --scopeName  "x_9274_my_app" \
+  --scopeName  "x_<VENDOR_PREFIX>_my_app" \
   --template   "typescript.basic" \
-  --auth       dev390976
+  --auth       <YOUR_INSTANCE>
 
 npm install
 npm run build && npm run deploy
@@ -169,7 +169,7 @@ import {
 |--------|---------|---------|
 | `Now.ID['key']` | Stable sys_id reference, auto-generated on first build | `$id: Now.ID['my-rule']` |
 | `Now.include('./file.js')` | Embed external script (path relative to `.now.ts` file) | `script: Now.include('./rule.server.js')` |
-| `Now.ref(export)` | Cross-reference another Fluent export | `table: Now.ref(x_9274_axm_lite_sn_release)` |
+| `Now.ref(export)` | Cross-reference another Fluent export | `table: Now.ref(x_<prefix>_<app>_sn_release)` |
 | `Now.attach('./file')` | Attach a file to a record | `attachment: Now.attach('./logo.png')` |
 | `TemplateValue({})` | Set field values in flow update/create actions | `values: TemplateValue({ state: '2' })` |
 | `wfa.dataPill(ref, type)` | Reference a flow data pill | `wfa.dataPill(params.trigger.current.sys_id, 'reference')` |
@@ -184,7 +184,7 @@ import { Record } from '@servicenow/sdk/core'
 Record({
     $id: Now.ID['seed-my-record'],
     $meta: { installMethod: 'first install' },   // 'demo' for demo-only data
-    table: 'x_9274_axm_lite_my_table',
+    table: 'x_<prefix>_<app>_my_table',
     data: {
         name: 'My Value',
         active: true,
@@ -210,7 +210,7 @@ export const validateOnInsert = BusinessRule({
     $id: Now.ID['validate-on-insert'],
     name: 'Validate on Insert',
     active: true,
-    table: 'x_9274_axm_lite_my_table',
+    table: 'x_<prefix>_<app>_my_table',
     when: 'before',
     action: ['insert'],
     script: Now.include('./validate.server.js'),
@@ -243,7 +243,7 @@ export const myFlow = Flow(
         trigger.record.created,
         { $id: Now.ID['my-flow-trigger'] },
         {
-            table: 'x_9274_axm_lite_my_table',
+            table: 'x_<prefix>_<app>_my_table',
             condition: 'active=true',
             run_flow_in: 'background',
             run_on_extended: 'false',
@@ -269,7 +269,7 @@ export const myFlow = Flow(
             action.core.updateRecord,
             { $id: Now.ID['my-flow-update'] },
             {
-                table_name: 'x_9274_axm_lite_my_table',
+                table_name: 'x_<prefix>_<app>_my_table',
                 record: wfa.dataPill(params.trigger.current.sys_id, 'reference'),
                 values: TemplateValue({ assigned_to: wfa.dataPill(found.Record.sys_id, 'reference') }),
             }
@@ -319,9 +319,9 @@ Keys in `src/fluent/generated/keys.ts` are **auto-generated on first build** whe
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| `application was null` | Scope in `now.config.json` has no matching app on PDI | Re-run `snc init --scopeName x_9274_<app> --auth dev390976` |
+| `application was null` | Scope in `now.config.json` has no matching app on PDI | Re-run `snc init --scopeName x_<VENDOR_PREFIX>_<app> --auth <YOUR_INSTANCE>` |
 | `Could not find package.json` | Wrong working directory | Run from repo root (`axiom-lite/`) |
-| `Invalid scope` | Wrong vendor prefix | Prefix for dev390976 is **9274** |
+| `Invalid scope` | Wrong vendor prefix | Prefix for <YOUR_INSTANCE> is **9274** |
 | `Cannot find module '@servicenow/sdk'` | Missing deps or wrong SDK path | `npm install`, then verify `snc --version` |
 | `fetch failed` on `--reinstall` | Network/auth issue | Retry without `--reinstall`; check `snc auth --list` |
 | `Custom table not in trigger types` | Stale type defs | `npm run types` after new table deploy, then rebuild |

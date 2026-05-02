@@ -1,5 +1,5 @@
 # Skill — ATF Test Generation from Requirements
-**Casey | axiom-lite | dev390976.service-now.com**
+**Casey | axiom-lite | &lt;YOUR_INSTANCE&gt;.service-now.com**
 
 > Use this skill when a Jordan build comment lands and the story has ACs worth automating. Generates a complete test suite — suite, tests, steps, assertions, cleanup — from the story's ACs.
 
@@ -55,8 +55,8 @@ Example from AXL-1:
 ## Step 2 — discover step config sys_ids (once per session)
 
 ```bash
-curl -s -u admin:PASSWORD \
-  "https://dev390976.service-now.com/api/now/table/sys_atf_step_config?sysparm_query=active%3Dtrue&sysparm_fields=sys_id,name,category&sysparm_limit=200" \
+curl -s -u <INSTANCE_USER>:<INSTANCE_PASSWORD> \
+  "https://<YOUR_INSTANCE>.service-now.com/api/now/table/sys_atf_step_config?sysparm_query=active%3Dtrue&sysparm_fields=sys_id,name,category&sysparm_limit=200" \
   | python3 -c "
 import sys, json
 for r in json.load(sys.stdin)['result']:
@@ -75,8 +75,8 @@ Pin the sys_ids you'll use. The four you need most:
 ## Step 3 — create suite
 
 ```bash
-SUITE=$(curl -s -X POST -u admin:PASSWORD \
-  "https://dev390976.service-now.com/api/now/table/sys_atf_test_suite" \
+SUITE=$(curl -s -X POST -u <INSTANCE_USER>:<INSTANCE_PASSWORD> \
+  "https://<YOUR_INSTANCE>.service-now.com/api/now/table/sys_atf_test_suite" \
   -H "Content-Type: application/json" \
   -d "{\"name\": \"AXL-1 Release Table Tests\", \"description\": \"ATF coverage for AXL-1 ACs\", \"active\": \"true\", \"run_parallel\": \"false\"}" \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['result']['sys_id'])")
@@ -88,8 +88,8 @@ echo "Suite: $SUITE"
 ## Step 4 — create test (one per AC scenario)
 
 ```bash
-TEST=$(curl -s -X POST -u admin:PASSWORD \
-  "https://dev390976.service-now.com/api/now/table/sys_atf_test" \
+TEST=$(curl -s -X POST -u <INSTANCE_USER>:<INSTANCE_PASSWORD> \
+  "https://<YOUR_INSTANCE>.service-now.com/api/now/table/sys_atf_test" \
   -H "Content-Type: application/json" \
   -d "{
     \"name\": \"AC-3: Admin can insert and delete a release record\",
@@ -107,7 +107,7 @@ echo "Test: $TEST"
 Use this pattern when creating many steps for a single test — one Background Script call creates all of them atomically:
 
 ```javascript
-// Scripts-Background on dev390976
+// Scripts-Background on <YOUR_INSTANCE>
 // Replace TEST_ID and SCRIPT_CONFIG with your values
 
 var testId = 'TEST_ID';
@@ -142,7 +142,7 @@ gs.info('Steps created for test ' + testId);
 
 ```javascript
 // Step 100 — insert
-var gr = new GlideRecord('x_9274_axm_lite_sn_release');
+var gr = new GlideRecord('x_<prefix>_<app>_<table>');
 gr.initialize();
 gr.setValue('name',     'ATF-Test-' + gs.generateGUID().substring(0,6));
 gr.setValue('code',     'atf-' + gs.generateGUID().substring(0,6));
@@ -156,7 +156,7 @@ outputs.test_code   = gr.getValue('code');
 
 ```javascript
 // Step 200 — assert fields persisted
-var gr = new GlideRecord('x_9274_axm_lite_sn_release');
+var gr = new GlideRecord('x_<prefix>_<app>_<table>');
 if (!gr.get(outputs.test_sys_id)) { throw new Error('Record not found after insert'); }
 
 var checks = {
@@ -176,7 +176,7 @@ if (fails.length) { throw new Error(fails.join('; ')); }
 
 ```javascript
 // Assert exactly 26 records exist
-var gr = new GlideAggregate('x_9274_axm_lite_sn_release');
+var gr = new GlideAggregate('x_<prefix>_<app>_<table>');
 gr.addAggregate('COUNT');
 gr.query();
 gr.next();
@@ -185,7 +185,7 @@ if (count !== 26) {
     throw new Error('Expected 26 records, found ' + count);
 }
 // Spot-check Zurich
-var zurich = new GlideRecord('x_9274_axm_lite_sn_release');
+var zurich = new GlideRecord('x_<prefix>_<app>_<table>');
 zurich.addQuery('code', 'zurich');
 zurich.query();
 if (!zurich.next()) { throw new Error('Zurich record missing'); }
@@ -201,13 +201,13 @@ if (zurich.getValue('ga_date') !== '2025-09-01') {
 
 ```javascript
 // Try inserting a duplicate code — expect it to fail or be blocked
-var existing = new GlideRecord('x_9274_axm_lite_sn_release');
+var existing = new GlideRecord('x_<prefix>_<app>_<table>');
 existing.addQuery('code', 'zurich');
 existing.query();
 existing.next();
 var dupCode = existing.getValue('code');
 
-var dup = new GlideRecord('x_9274_axm_lite_sn_release');
+var dup = new GlideRecord('x_<prefix>_<app>_<table>');
 dup.initialize();
 dup.setValue('name',     'Duplicate Zurich');
 dup.setValue('code',     dupCode);   // duplicate
@@ -218,7 +218,7 @@ var dupId = dup.insert();
 // Unique constraint should prevent this
 if (dupId) {
     // Clean up the duplicate before failing
-    var cleanup = new GlideRecord('x_9274_axm_lite_sn_release');
+    var cleanup = new GlideRecord('x_<prefix>_<app>_<table>');
     if (cleanup.get(dupId)) { cleanup.deleteRecord(); }
     throw new Error('Duplicate code was accepted — unique constraint not enforced');
 }
@@ -229,7 +229,7 @@ if (dupId) {
 
 ```javascript
 // Cleanup all records created by this test (identified by code prefix)
-var gr = new GlideRecord('x_9274_axm_lite_sn_release');
+var gr = new GlideRecord('x_<prefix>_<app>_<table>');
 gr.addQuery('code', 'STARTSWITH', 'atf-');
 gr.query();
 var n = 0;
@@ -242,8 +242,8 @@ gs.info('ATF cleanup: ' + n + ' test records deleted');
 ## Step 7 — add test to suite
 
 ```bash
-curl -s -X POST -u admin:PASSWORD \
-  "https://dev390976.service-now.com/api/now/table/sys_atf_test_suite_test" \
+curl -s -X POST -u <INSTANCE_USER>:<INSTANCE_PASSWORD> \
+  "https://<YOUR_INSTANCE>.service-now.com/api/now/table/sys_atf_test_suite_test" \
   -H "Content-Type: application/json" \
   -d "{\"test_suite\": \"$SUITE\", \"test\": \"$TEST\", \"order\": \"100\", \"abort_on_failure\": \"false\"}"
 ```
@@ -262,8 +262,8 @@ gs.info('Result ID: ' + resultId);
 
 ```bash
 # Poll result status
-curl -s -u admin:PASSWORD \
-  "https://dev390976.service-now.com/api/now/table/sys_atf_test_result/RESULT_ID?sysparm_fields=status,output,start_time,end_time" \
+curl -s -u <INSTANCE_USER>:<INSTANCE_PASSWORD> \
+  "https://<YOUR_INSTANCE>.service-now.com/api/now/table/sys_atf_test_result/RESULT_ID?sysparm_fields=status,output,start_time,end_time" \
   | python3 -c "import sys,json; d=json.load(sys.stdin)['result']; print(d['status'], d.get('output','')[:300])"
 ```
 
@@ -277,12 +277,12 @@ After ATF runs, append to the test results Jira comment:
 ATF:
   Suite: AXL-1 Release Table Tests
   Tests run: N | Pass: N | Fail: 0
-  Result URL: https://dev390976.service-now.com/sys_atf_test_result.do?sys_id=RESULT_ID
+  Result URL: https://<YOUR_INSTANCE>.service-now.com/sys_atf_test_result.do?sys_id=RESULT_ID
 ```
 
 If ATF plugin is inactive on the PDI, add:
 ```
-ATF: skipped — com.snc.automated_test_framework plugin not active on dev390976
+ATF: skipped — com.snc.automated_test_framework plugin not active on <YOUR_INSTANCE>
 ```
 
 ---

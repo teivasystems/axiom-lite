@@ -30,7 +30,7 @@ export const my_flow = Flow(
         runAs: 'system',
     },
     wfa.trigger(trigger.record.created, { $id: Now.ID['fl0_trig'] }, {
-        table: 'x_9274_kudos_entry',   // exact table sys_name — NOT table_name
+        table: 'x_<prefix>_<app>_<table>',   // exact table sys_name — NOT table_name
         run_on_extended: 'false',
         run_flow_in: 'background',
     }),
@@ -66,7 +66,7 @@ wfa.trigger(
     trigger.record.created,           // trigger definition
     { $id: Now.ID['fl0_trig'] },      // config object with $id — REQUIRED, not optional
     {
-        table: 'x_9274_kudos_entry',  // 'table' not 'table_name'
+        table: 'x_<prefix>_<app>_<table>',  // 'table' not 'table_name'
         run_on_extended: 'false',
         run_flow_in: 'background',
     }
@@ -92,7 +92,7 @@ The return value of `wfa.action()` is the action's output — use it to chain da
 
 ```typescript
 const results = wfa.action(action.core.lookUpRecords, { $id: Now.ID['fl_lu'] }, {
-    table: 'x_9274_kudos_entry',
+    table: 'x_<prefix>_<app>_<table>',
     conditions: 'active=true',
     max_results: 200,
 })

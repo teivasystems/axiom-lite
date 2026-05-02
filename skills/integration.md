@@ -283,7 +283,7 @@ try {
 } catch (credErr) {
     gs.warn('Credential lookup failed: ' + credErr.message);
     // fallback to sys_property — only if alias approach fails
-    rm.setRequestHeader('x-api-key', gs.getProperty('x_9274_kudos.claude_api_key', ''));
+    rm.setRequestHeader('x-api-key', gs.getProperty('x_<prefix>_<app>.<property>', ''));
 }
 
 rm.setRequestHeader('anthropic-version', '2023-06-01');

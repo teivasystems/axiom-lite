@@ -1,5 +1,5 @@
 # Skill — Automated Test Framework (ATF)
-**Casey | axiom-lite | dev390976.service-now.com**
+**Casey | axiom-lite | &lt;YOUR_INSTANCE&gt;.service-now.com**
 
 > Run ATF checks after every Jordan build comment. Prefer server-side tests over browser tests — faster, more reliable, no test client needed.
 
@@ -21,7 +21,7 @@ Test Suite
 ## Plugin check — run before any ATF work
 
 ```javascript
-// Scripts-Background on dev390976
+// Scripts-Background on <YOUR_INSTANCE>
 gs.info('ATF active: ' + GlidePluginManager.isActive('com.snc.automated_test_framework'));
 // Expected: true — if false, ATF cannot run on this PDI
 ```
@@ -49,8 +49,8 @@ Step configs vary by instance. Always query before hardcoding.
 
 ```bash
 # Get all active step configs
-curl -s -u admin:PASSWORD \
-  "https://dev390976.service-now.com/api/now/table/sys_atf_step_config?sysparm_query=active%3Dtrue&sysparm_fields=sys_id,name,category&sysparm_limit=200&sysparm_display_value=true" \
+curl -s -u <INSTANCE_USER>:<INSTANCE_PASSWORD> \
+  "https://<YOUR_INSTANCE>.service-now.com/api/now/table/sys_atf_step_config?sysparm_query=active%3Dtrue&sysparm_fields=sys_id,name,category&sysparm_limit=200&sysparm_display_value=true" \
   | python3 -c "import sys,json; [print(r['sys_id']['value'], r['category']['display_value'] if isinstance(r['category'],dict) else r['category'], r['name']['display_value'] if isinstance(r['name'],dict) else r['name']) for r in json.load(sys.stdin)['result']]"
 ```
 
@@ -71,12 +71,12 @@ Essential step configs to note:
 ## Create a test suite (REST)
 
 ```bash
-curl -s -X POST -u admin:PASSWORD \
-  "https://dev390976.service-now.com/api/now/table/sys_atf_test_suite" \
+curl -s -X POST -u <INSTANCE_USER>:<INSTANCE_PASSWORD> \
+  "https://<YOUR_INSTANCE>.service-now.com/api/now/table/sys_atf_test_suite" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "AXL Release Table Tests",
-    "description": "ATF tests for x_9274_axm_lite_sn_release table",
+    "description": "ATF tests for x_<prefix>_<app>_<table> table",
     "active": "true",
     "run_parallel": "false"
   }' | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['result']['sys_id'])"
@@ -87,8 +87,8 @@ curl -s -X POST -u admin:PASSWORD \
 ## Create a test (REST)
 
 ```bash
-curl -s -X POST -u admin:PASSWORD \
-  "https://dev390976.service-now.com/api/now/table/sys_atf_test" \
+curl -s -X POST -u <INSTANCE_USER>:<INSTANCE_PASSWORD> \
+  "https://<YOUR_INSTANCE>.service-now.com/api/now/table/sys_atf_test" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Verify release record can be created and read",
@@ -104,8 +104,8 @@ curl -s -X POST -u admin:PASSWORD \
 ### Setup — create test record
 
 ```bash
-curl -s -X POST -u admin:PASSWORD \
-  "https://dev390976.service-now.com/api/now/table/sys_atf_step" \
+curl -s -X POST -u <INSTANCE_USER>:<INSTANCE_PASSWORD> \
+  "https://<YOUR_INSTANCE>.service-now.com/api/now/table/sys_atf_step" \
   -H "Content-Type: application/json" \
   -d '{
     "test": "TEST_SYS_ID",
@@ -122,7 +122,7 @@ Use "Run Server Side Script" for anything needing GlideRecord logic or complex a
 
 ```javascript
 // Step script (inputs.script field value)
-var gr = new GlideRecord('x_9274_axm_lite_sn_release');
+var gr = new GlideRecord('x_<prefix>_<app>_<table>');
 gr.initialize();
 gr.setValue('name',     'ATF Test Release');
 gr.setValue('code',     'atf-test');
@@ -142,7 +142,7 @@ outputs.test_record_number = gr.getValue('name');
 
 ```javascript
 // Assert step script
-var gr = new GlideRecord('x_9274_axm_lite_sn_release');
+var gr = new GlideRecord('x_<prefix>_<app>_<table>');
 gr.get(outputs.test_record_sys_id);  // from previous step output
 
 var assertions = [
@@ -167,7 +167,7 @@ if (failures.length > 0) {
 
 ```javascript
 // Cleanup step script
-var gr = new GlideRecord('x_9274_axm_lite_sn_release');
+var gr = new GlideRecord('x_<prefix>_<app>_<table>');
 gr.addQuery('code', 'atf-test');
 gr.query();
 while (gr.next()) {
@@ -181,8 +181,8 @@ gs.info('ATF cleanup: deleted test release records');
 ## Add test to suite (REST)
 
 ```bash
-curl -s -X POST -u admin:PASSWORD \
-  "https://dev390976.service-now.com/api/now/table/sys_atf_test_suite_test" \
+curl -s -X POST -u <INSTANCE_USER>:<INSTANCE_PASSWORD> \
+  "https://<YOUR_INSTANCE>.service-now.com/api/now/table/sys_atf_test_suite_test" \
   -H "Content-Type: application/json" \
   -d '{
     "test_suite": "SUITE_SYS_ID",
@@ -197,7 +197,7 @@ curl -s -X POST -u admin:PASSWORD \
 ## Run a test (Background Script)
 
 ```javascript
-// Scripts-Background on dev390976
+// Scripts-Background on <YOUR_INSTANCE>
 var runner = new sn_atf.ATFTestRunner();
 runner.setTest('TEST_SYS_ID');
 var resultId = runner.run();
@@ -219,12 +219,12 @@ gs.info('ATF suite result ID: ' + resultId);
 
 ```bash
 # Latest results for a test
-curl -s -u admin:PASSWORD \
-  "https://dev390976.service-now.com/api/now/table/sys_atf_test_result?sysparm_query=test%3DTEST_SYS_ID%5EORDERBYDESCstart_time&sysparm_fields=sys_id,status,start_time,end_time,duration,output&sysparm_limit=5&sysparm_display_value=true"
+curl -s -u <INSTANCE_USER>:<INSTANCE_PASSWORD> \
+  "https://<YOUR_INSTANCE>.service-now.com/api/now/table/sys_atf_test_result?sysparm_query=test%3DTEST_SYS_ID%5EORDERBYDESCstart_time&sysparm_fields=sys_id,status,start_time,end_time,duration,output&sysparm_limit=5&sysparm_display_value=true"
 
 # Step-level results for a failed test
-curl -s -u admin:PASSWORD \
-  "https://dev390976.service-now.com/api/now/table/sys_atf_step_result?sysparm_query=test_result%3DRESULT_SYS_ID%5Estatus%3Dfailure&sysparm_fields=step.description,status,output,failure_reason&sysparm_limit=50"
+curl -s -u <INSTANCE_USER>:<INSTANCE_PASSWORD> \
+  "https://<YOUR_INSTANCE>.service-now.com/api/now/table/sys_atf_step_result?sysparm_query=test_result%3DRESULT_SYS_ID%5Estatus%3Dfailure&sysparm_fields=step.description,status,output,failure_reason&sysparm_limit=50"
 ```
 
 ---
@@ -254,7 +254,7 @@ runner.run();
 
 ```javascript
 // Scripts-Background
-var gr = new GlideRecord('x_9274_axm_lite_sn_release');
+var gr = new GlideRecord('x_<prefix>_<app>_<table>');
 gr.addQuery('code', 'STARTSWITH', 'atf-');
 gr.addQuery('sys_created_on', '<', gs.daysAgo(1));
 gr.query();
