@@ -53,6 +53,10 @@ Platform notes:
 - [any known constraint — plugin availability, scope, table names]
 ```
 
+**Skill files (load when needed):**
+- `skills/agile-story.md` — story writing patterns, user story format, AC best practices
+- `skills/acceptance-criteria.md` — AC structure, testability heuristics, edge case prompts
+
 **Rules:**
 - Acceptance criteria must be testable by Casey without ambiguity.
 - "Out of scope" is mandatory — unstated scope becomes surprise scope during build.
@@ -66,7 +70,7 @@ Platform notes:
 
 **Steps:**
 1. Read the story and all existing comments on [STORY-XX].
-2. Load `skills/platform.md`, `skills/flows.md`, `skills/integration.md`, `skills/ui.md` as needed.
+2. Load skills as needed (see below).
 3. Write the architecture comment in the format below.
 4. Post it to [STORY-XX].
 5. Assign the story to Jordan AND Casey. Tell Kostya: "Architecture posted on [KEY]. Jordan and Casey are up."
@@ -101,6 +105,15 @@ Build order:
 Risks:
 - [anything that could block build or fail in demo — or "None"]
 ```
+
+**Skill files (load when needed):**
+- `skills/platform.md` — GlideRecord, Script Includes, scoped app patterns
+- `skills/flows.md` — Fluent SDK DSL, trigger/action/dataPill
+- `skills/integration.md` — Claude API, IntegrationHub, sn_ws fallback
+- `skills/ui.md` — UX channel routing, SP widgets, UI Builder, Now Assist
+- `skills/application-scope.md` — scoped app setup, cross-scope access, ACL patterns
+- `skills/script-includes.md` — Script Include patterns, inheritance, utility methods
+- `skills/sdk.md` — now-sdk init, deploy, scope naming reference
 
 **Rules:**
 - Be specific. "A table for storing items" is not architecture. Field names and types are architecture.
@@ -263,14 +276,17 @@ Transition story to In Review. Tell Kostya: "Build complete on [KEY]. Casey is u
 ### Skill files — load as needed
 
 ```
-skills/sdk.md                ← now-sdk CLI, scope naming, init/deploy flow, seed data — READ FIRST
-skills/platform.md           ← GlideRecord, Script Includes, scoped app patterns
-skills/flows.md              ← Fluent SDK DSL, trigger/action/dataPill — read before any flow
-skills/integration.md        ← Claude API, IntegrationHub, sn_ws fallback, credential alias
-skills/ui.md                 ← UX channel routing, SP widgets, UI Builder, Now Assist
-skills/jira.md               ← Jira comment format reference
-skills/atf.md                ← ATF architecture, step types, run/query patterns (Casey)
-skills/atf-test-generation.md ← Generate ATF tests from ACs and story requirements (Casey)
+skills/sdk.md                   ← now-sdk CLI, scope naming, init/deploy flow, seed data — READ FIRST
+skills/platform.md              ← GlideRecord, Script Includes, scoped app patterns
+skills/flows.md                 ← Fluent SDK DSL, trigger/action/dataPill — read before any flow
+skills/integration.md           ← Claude API, IntegrationHub, sn_ws fallback, credential alias
+skills/ui.md                    ← UX channel routing, SP widgets, UI Builder, Now Assist
+skills/script-includes.md       ← Script Include patterns, inheritance, utility class templates
+skills/application-scope.md     ← scoped app setup, cross-scope access, ACL patterns
+skills/debugging.md             ← background script debugging, log reading, common traps
+skills/jira.md                  ← Jira comment format reference
+skills/atf.md                   ← ATF architecture, step types, run/query patterns (Casey)
+skills/atf-test-generation.md   ← Generate ATF tests from ACs and story requirements (Casey)
 ```
 
 ### Code constraints

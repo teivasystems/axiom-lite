@@ -1,308 +1,347 @@
-# Skill — ATF Test Generation from Requirements
-**Casey | axiom-lite | &lt;YOUR_INSTANCE&gt;.service-now.com**
 
-> Use this skill when a Jordan build comment lands and the story has ACs worth automating. Generates a complete test suite — suite, tests, steps, assertions, cleanup — from the story's ACs.
+# test-generation v1.0.0
 
----
+Generate ATF (Automated Test Framework) tests from requirements or existing functionality including test steps, assertions, and test data
 
-## When to generate ATF tests
+Author: Happy Technologies LLC
+Category: development
+Complexity: advanced
+Tags: development, testing, atf, automated-testing, test-framework, test-generation, quality, assertions
+Platforms: claude-code, claude-desktop, chatgpt, cursor, any
 
-Read the story's ACs and classify each one:
+Tools:
+  mcp: SN-Query-Table, SN-Create-Record, SN-Update-Record, SN-NL-Search, SN-Execute-Background-Script, SN-Discover-Table-Schema
+  rest: /api/now/table/sys_atf_test, /api/now/table/sys_atf_step, /api/now/table/sys_atf_test_suite_test, /api/now/table/sys_atf_test_result, /api/now/table/sys_atf_step_config, /api/now/table/sys_atf_test_suite
+  native: Bash
 
-| AC type | Generate ATF? | Test type |
-|---------|--------------|-----------|
-| Table CRUD (insert/update/delete) | Yes | Server-side script steps |
-| Field validation / business rule | Yes | Server-side script steps |
-| Uniqueness / mandatory constraints | Yes | Server-side script steps |
-| Form UI behavior / client script | Yes | Browser steps (needs test client) |
-| Read-only config, no logic | No | Manual spot-check |
-| Integration (external API) | Conditional | Script step + mock or skip |
+## Procedure
 
----
+### Step 1: Analyze the Requirement or Functionality
 
-## Generation workflow
+Identify what needs to be tested and break it into testable scenarios.
 
+**Query existing business rules, client scripts, or workflows for the target table:**
+
+**Using MCP (Claude Code/Desktop):**
 ```
-1. Read story + Sam's architecture comment
-2. Map each AC to a test scenario
-3. Check ATF plugin is active on PDI
-4. Discover step config sys_ids (query sys_atf_step_config once per session)
-5. Create suite → create test(s) → create steps → add to suite
-6. Run and verify
-7. Report in Casey's test results comment
+Tool: SN-Query-Table
+Parameters:
+  table_name: sys_script
+  query: collection=[table_name]^active=true
+  fields: sys_id,name,when,filter_condition,script,active,order
+  limit: 20
 ```
 
----
+**Query existing tests for the same area to avoid duplication:**
+```
+Tool: SN-Query-Table
+Parameters:
+  table_name: sys_atf_test
+  query: descriptionLIKE[feature_keyword]^ORnameLIKE[feature_keyword]
+  fields: sys_id,name,description,status,sys_updated_on,test_suite
+  limit: 20
+```
 
-## Step 1 — analyse ACs and map to scenarios
-
-For each AC, write:
-- **GIVEN** the system state
-- **WHEN** the action
-- **THEN** the assertion
-- **CLEANUP** what to undo
-
-Example from AXL-1:
-
-| AC | Scenario | Steps |
-|----|----------|-------|
-| AC-1 | Table exists with correct fields | Query sys_dictionary for name/code/ga_date/sequence; assert each exists and has correct type |
-| AC-2 | 26 records Aspen→Zurich | Count records; assert = 26; spot-check Zurich seq=26, ga_date=2025-09-01 |
-| AC-3 | Admin can add a record | Insert new record via GlideRecord; assert insert succeeded; cleanup |
-
----
-
-## Step 2 — discover step config sys_ids (once per session)
-
+**Using REST API:**
 ```bash
-curl -s -u <INSTANCE_USER>:<INSTANCE_PASSWORD> \
-  "https://<YOUR_INSTANCE>.service-now.com/api/now/table/sys_atf_step_config?sysparm_query=active%3Dtrue&sysparm_fields=sys_id,name,category&sysparm_limit=200" \
-  | python3 -c "
-import sys, json
-for r in json.load(sys.stdin)['result']:
-    print(r['sys_id'], r.get('category',''), r['name'])
-" | sort -k2,2 -k3,3
+GET /api/now/table/sys_atf_test?sysparm_query=descriptionLIKE[feature_keyword]&sysparm_fields=sys_id,name,description,status,sys_updated_on&sysparm_limit=20&sysparm_display_value=true
 ```
 
-Pin the sys_ids you'll use. The four you need most:
-- `Record - Insert`
-- `Record - Delete`
-- `Run Server Side Script`
-- `Impersonate`
+**Identify available step configurations:**
+```
+Tool: SN-Query-Table
+Parameters:
+  table_name: sys_atf_step_config
+  query: active=true
+  fields: sys_id,name,category,description,batch_order_constraint
+  limit: 50
+  order_by: category,name
+```
 
----
+### Step 2: Create the Test Record
 
-## Step 3 — create suite
+Generate the test with descriptive metadata.
 
+**Using MCP:**
+```
+Tool: SN-Create-Record
+Parameters:
+  table_name: sys_atf_test
+  fields:
+    name: "Validate Incident Priority Calculation Business Rule"
+    description: |
+      Tests the priority lookup business rule on the incident table.
+
+      Scenarios covered:
+      1. Impact=1 + Urgency=1 should set Priority=1 (Critical)
+      2. Impact=2 + Urgency=2 should set Priority=3 (Moderate)
+      3. Impact=3 + Urgency=3 should set Priority=4 (Low)
+      4. Changing Impact should recalculate Priority
+      5. Priority field should be read-only after calculation
+
+      Related requirement: REQ-2026-0145
+      Related story: STY0015678
+    status: design
+    active: true
+    application: [app_scope_sys_id]
+    category: functional
+    priority: 2
+```
+
+**Using REST API:**
 ```bash
-SUITE=$(curl -s -X POST -u <INSTANCE_USER>:<INSTANCE_PASSWORD> \
-  "https://<YOUR_INSTANCE>.service-now.com/api/now/table/sys_atf_test_suite" \
-  -H "Content-Type: application/json" \
-  -d "{\"name\": \"AXL-1 Release Table Tests\", \"description\": \"ATF coverage for AXL-1 ACs\", \"active\": \"true\", \"run_parallel\": \"false\"}" \
-  | python3 -c "import sys,json; print(json.load(sys.stdin)['result']['sys_id'])")
-echo "Suite: $SUITE"
+POST /api/now/table/sys_atf_test
+Content-Type: application/json
+
+{
+  "name": "Validate Incident Priority Calculation Business Rule",
+  "description": "Tests the priority lookup business rule on the incident table.",
+  "status": "design",
+  "active": "true",
+  "category": "functional",
+  "priority": "2"
+}
 ```
 
----
+### Step 3: Generate Test Data Setup Steps
 
-## Step 4 — create test (one per AC scenario)
+Create steps that prepare the test environment with known data.
 
+**Using MCP:**
+```
+Tool: SN-Create-Record
+Parameters:
+  table_name: sys_atf_step
+  fields:
+    test: [test_sys_id]
+    step_config: [create_record_step_config_sys_id]
+    order: 100
+    description: "Create test incident with Impact=1 and Urgency=1"
+    active: true
+    inputs: |
+      {
+        "table": "incident",
+        "fields": {
+          "short_description": "ATF Test - Priority Calculation P1",
+          "caller_id": "javascript:gs.getUserID()",
+          "impact": "1",
+          "urgency": "1",
+          "category": "software",
+          "assignment_group": "javascript:new GlideRecord('sys_user_group').get('name', 'Service Desk') ? current.sys_id : ''"
+        }
+      }
+    output_variable: test_incident_p1
+```
+
+**Using REST API:**
 ```bash
-TEST=$(curl -s -X POST -u <INSTANCE_USER>:<INSTANCE_PASSWORD> \
-  "https://<YOUR_INSTANCE>.service-now.com/api/now/table/sys_atf_test" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"name\": \"AC-3: Admin can insert and delete a release record\",
-    \"description\": \"GIVEN the release table exists WHEN admin inserts a record THEN it persists and can be deleted\",
-    \"active\": \"true\"
-  }" \
-  | python3 -c "import sys,json; print(json.load(sys.stdin)['result']['sys_id'])")
-echo "Test: $TEST"
-```
+POST /api/now/table/sys_atf_step
+Content-Type: application/json
 
----
-
-## Step 5 — generate steps with Background Script
-
-Use this pattern when creating many steps for a single test — one Background Script call creates all of them atomically:
-
-```javascript
-// Scripts-Background on <YOUR_INSTANCE>
-// Replace TEST_ID and SCRIPT_CONFIG with your values
-
-var testId = 'TEST_ID';
-var scriptConfig = 'SCRIPT_CONFIG_SYS_ID';  // Run Server Side Script
-
-function addStep(order, description, script) {
-    var step = new GlideRecord('sys_atf_step');
-    step.initialize();
-    step.setValue('test', testId);
-    step.setValue('step_config', scriptConfig);
-    step.setValue('order', order);
-    step.setValue('description', description);
-    step.setValue('active', true);
-    // Note: actual script input injection varies by step_config —
-    // check inputs field format for the specific config first
-    step.insert();
-}
-
-addStep(100, 'Setup: Insert test release record', '');
-addStep(200, 'Assert: Record persists with correct fields', '');
-addStep(300, 'Assert: Unique constraint blocks duplicate code', '');
-addStep(9999, 'Cleanup: Delete test release records', '');
-
-gs.info('Steps created for test ' + testId);
-```
-
----
-
-## Step 6 — server-side script templates
-
-### Template A — Insert + assert fields
-
-```javascript
-// Step 100 — insert
-var gr = new GlideRecord('x_<prefix>_<app>_<table>');
-gr.initialize();
-gr.setValue('name',     'ATF-Test-' + gs.generateGUID().substring(0,6));
-gr.setValue('code',     'atf-' + gs.generateGUID().substring(0,6));
-gr.setValue('ga_date',  '2099-06-01');
-gr.setValue('sequence', 999);
-var id = gr.insert();
-if (!id) { throw new Error('Insert failed: ' + gr.getLastErrorMessage()); }
-outputs.test_sys_id = id;
-outputs.test_code   = gr.getValue('code');
-```
-
-```javascript
-// Step 200 — assert fields persisted
-var gr = new GlideRecord('x_<prefix>_<app>_<table>');
-if (!gr.get(outputs.test_sys_id)) { throw new Error('Record not found after insert'); }
-
-var checks = {
-    ga_date:  { got: gr.getValue('ga_date'),  want: '2099-06-01' },
-    sequence: { got: gr.getValue('sequence'), want: '999' },
-};
-var fails = [];
-for (var f in checks) {
-    if (checks[f].got !== checks[f].want) {
-        fails.push(f + ': want=' + checks[f].want + ' got=' + checks[f].got);
-    }
-}
-if (fails.length) { throw new Error(fails.join('; ')); }
-```
-
-### Template B — Count assertion (AC-2 style)
-
-```javascript
-// Assert exactly 26 records exist
-var gr = new GlideAggregate('x_<prefix>_<app>_<table>');
-gr.addAggregate('COUNT');
-gr.query();
-gr.next();
-var count = parseInt(gr.getAggregate('COUNT'));
-if (count !== 26) {
-    throw new Error('Expected 26 records, found ' + count);
-}
-// Spot-check Zurich
-var zurich = new GlideRecord('x_<prefix>_<app>_<table>');
-zurich.addQuery('code', 'zurich');
-zurich.query();
-if (!zurich.next()) { throw new Error('Zurich record missing'); }
-if (zurich.getValue('sequence') !== '26') {
-    throw new Error('Zurich sequence: want=26 got=' + zurich.getValue('sequence'));
-}
-if (zurich.getValue('ga_date') !== '2025-09-01') {
-    throw new Error('Zurich ga_date: want=2025-09-01 got=' + zurich.getValue('ga_date'));
+{
+  "test": "[test_sys_id]",
+  "step_config": "[create_record_step_config_sys_id]",
+  "order": "100",
+  "description": "Create test incident with Impact=1 and Urgency=1",
+  "active": "true"
 }
 ```
 
-### Template C — Unique constraint test
+### Step 4: Generate Assertion Steps
 
-```javascript
-// Try inserting a duplicate code — expect it to fail or be blocked
-var existing = new GlideRecord('x_<prefix>_<app>_<table>');
-existing.addQuery('code', 'zurich');
-existing.query();
-existing.next();
-var dupCode = existing.getValue('code');
+Create steps that validate expected outcomes.
 
-var dup = new GlideRecord('x_<prefix>_<app>_<table>');
-dup.initialize();
-dup.setValue('name',     'Duplicate Zurich');
-dup.setValue('code',     dupCode);   // duplicate
-dup.setValue('ga_date',  '2025-09-01');
-dup.setValue('sequence', 100);
-var dupId = dup.insert();
-
-// Unique constraint should prevent this
-if (dupId) {
-    // Clean up the duplicate before failing
-    var cleanup = new GlideRecord('x_<prefix>_<app>_<table>');
-    if (cleanup.get(dupId)) { cleanup.deleteRecord(); }
-    throw new Error('Duplicate code was accepted — unique constraint not enforced');
-}
-// If insert returned null/false, unique constraint worked correctly
+**Using MCP:**
+```
+Tool: SN-Create-Record
+Parameters:
+  table_name: sys_atf_step
+  fields:
+    test: [test_sys_id]
+    step_config: [assert_record_values_step_config_sys_id]
+    order: 200
+    description: "Assert Priority is set to 1 (Critical) when Impact=1, Urgency=1"
+    active: true
+    inputs: |
+      {
+        "table": "incident",
+        "sys_id": "{{test_incident_p1.sys_id}}",
+        "assertions": [
+          {
+            "field": "priority",
+            "operator": "=",
+            "expected": "1"
+          }
+        ]
+      }
 ```
 
-### Template D — Cleanup (always order 9999)
-
-```javascript
-// Cleanup all records created by this test (identified by code prefix)
-var gr = new GlideRecord('x_<prefix>_<app>_<table>');
-gr.addQuery('code', 'STARTSWITH', 'atf-');
-gr.query();
-var n = 0;
-while (gr.next()) { gr.deleteRecord(); n++; }
-gs.info('ATF cleanup: ' + n + ' test records deleted');
+**Create a server-side script step for complex assertions:**
+```
+Tool: SN-Create-Record
+Parameters:
+  table_name: sys_atf_step
+  fields:
+    test: [test_sys_id]
+    step_config: [run_server_side_script_step_config_sys_id]
+    order: 300
+    description: "Validate priority matrix lookup logic"
+    active: true
+    inputs: |
+      {
+        "script": "var gr = new GlideRecord('incident');\ngr.get('{{test_incident_p1.sys_id}}');\n\nvar expectedPriority = '1';\nvar actualPriority = gr.getValue('priority');\n\nstepResult.setOutputMessage('Expected: ' + expectedPriority + ', Actual: ' + actualPriority);\nstepResult.assertEqual({\n  name: 'Priority calculation for Impact=1, Urgency=1',\n  shouldbe: expectedPriority,\n  value: actualPriority\n});"
+      }
 ```
 
----
+### Step 5: Generate Multiple Test Scenarios
 
-## Step 7 — add test to suite
+Create comprehensive test coverage using batch step generation.
 
+**Using MCP:**
+```
+Tool: SN-Execute-Background-Script
+Parameters:
+  description: Generate ATF test steps for all priority matrix combinations
+  script: |
+    var testId = '[test_sys_id]';
+    var createStepConfig = '[create_record_step_config_sys_id]';
+    var assertStepConfig = '[assert_record_values_step_config_sys_id]';
+    var cleanupStepConfig = '[delete_record_step_config_sys_id]';
+
+    // Priority matrix: Impact x Urgency = Priority
+    var matrix = [
+      { impact: 1, urgency: 1, expected_priority: 1, label: 'Critical' },
+      { impact: 1, urgency: 2, expected_priority: 2, label: 'High' },
+      { impact: 1, urgency: 3, expected_priority: 2, label: 'High' },
+      { impact: 2, urgency: 1, expected_priority: 2, label: 'High' },
+      { impact: 2, urgency: 2, expected_priority: 3, label: 'Moderate' },
+      { impact: 2, urgency: 3, expected_priority: 3, label: 'Moderate' },
+      { impact: 3, urgency: 1, expected_priority: 2, label: 'High' },
+      { impact: 3, urgency: 2, expected_priority: 3, label: 'Moderate' },
+      { impact: 3, urgency: 3, expected_priority: 4, label: 'Low' }
+    ];
+
+    var stepOrder = 100;
+    var createdSteps = 0;
+
+    matrix.forEach(function(combo) {
+      var varName = 'incident_i' + combo.impact + '_u' + combo.urgency;
+
+      // Create record step
+      var create = new GlideRecord('sys_atf_step');
+      create.initialize();
+      create.test = testId;
+      create.step_config = createStepConfig;
+      create.order = stepOrder;
+      create.description = 'Create incident: Impact=' + combo.impact + ', Urgency=' + combo.urgency;
+      create.active = true;
+      create.insert();
+      stepOrder += 50;
+      createdSteps++;
+
+      // Assert step
+      var assert = new GlideRecord('sys_atf_step');
+      assert.initialize();
+      assert.test = testId;
+      assert.step_config = assertStepConfig;
+      assert.order = stepOrder;
+      assert.description = 'Assert Priority=' + combo.expected_priority + ' (' + combo.label + ') for Impact=' + combo.impact + ', Urgency=' + combo.urgency;
+      assert.active = true;
+      assert.insert();
+      stepOrder += 50;
+      createdSteps++;
+    });
+
+    gs.info('Created ' + createdSteps + ' ATF steps for ' + matrix.length + ' priority combinations');
+```
+
+### Step 6: Add Cleanup (Teardown) Steps
+
+Ensure test data is cleaned up after execution.
+
+**Using MCP:**
+```
+Tool: SN-Create-Record
+Parameters:
+  table_name: sys_atf_step
+  fields:
+    test: [test_sys_id]
+    step_config: [delete_record_step_config_sys_id]
+    order: 9000
+    description: "Cleanup: Delete test incidents created during test"
+    active: true
+    inputs: |
+      {
+        "table": "incident",
+        "query": "short_descriptionSTARTSWITHATF Test - Priority Calculation"
+      }
+```
+
+### Step 7: Organize Into Test Suites
+
+Add the test to an appropriate test suite for batch execution.
+
+**Using MCP:**
+```
+Tool: SN-Query-Table
+Parameters:
+  table_name: sys_atf_test_suite
+  query: active=true^nameLIKEregression^ORnameLIKEincident
+  fields: sys_id,name,description,active,scheduled,run_condition
+  limit: 10
+```
+
+**Add test to suite:**
+```
+Tool: SN-Create-Record
+Parameters:
+  table_name: sys_atf_test_suite_test
+  fields:
+    test_suite: [suite_sys_id]
+    test: [test_sys_id]
+    order: 500
+    abort_on_failure: false
+```
+
+**Using REST API:**
 ```bash
-curl -s -X POST -u <INSTANCE_USER>:<INSTANCE_PASSWORD> \
-  "https://<YOUR_INSTANCE>.service-now.com/api/now/table/sys_atf_test_suite_test" \
-  -H "Content-Type: application/json" \
-  -d "{\"test_suite\": \"$SUITE\", \"test\": \"$TEST\", \"order\": \"100\", \"abort_on_failure\": \"false\"}"
+POST /api/now/table/sys_atf_test_suite_test
+Content-Type: application/json
+
+{
+  "test_suite": "[suite_sys_id]",
+  "test": "[test_sys_id]",
+  "order": "500",
+  "abort_on_failure": "false"
+}
 ```
 
----
+### Step 8: Review Test Results
 
-## Step 8 — run and read results
+Analyze results after test execution.
 
-```javascript
-// Background Script
-var runner = new sn_atf.ATFTestSuiteRunner();
-runner.setSuite('SUITE_SYS_ID');
-var resultId = runner.run();
-gs.info('Result ID: ' + resultId);
+**Using MCP:**
+```
+Tool: SN-Query-Table
+Parameters:
+  table_name: sys_atf_test_result
+  query: test=[test_sys_id]^ORDERBYDESCstart_time
+  fields: sys_id,test,status,start_time,end_time,duration,output,run_by,failure_reason
+  limit: 10
 ```
 
+**Get step-level results:**
+```
+Tool: SN-Query-Table
+Parameters:
+  table_name: sys_atf_step_result
+  query: test_result=[result_sys_id]
+  fields: sys_id,step,step.description,status,output,start_time,end_time,failure_reason
+  limit: 50
+  order_by: step.order
+```
+
+**Using REST API:**
 ```bash
-# Poll result status
-curl -s -u <INSTANCE_USER>:<INSTANCE_PASSWORD> \
-  "https://<YOUR_INSTANCE>.service-now.com/api/now/table/sys_atf_test_result/RESULT_ID?sysparm_fields=status,output,start_time,end_time" \
-  | python3 -c "import sys,json; d=json.load(sys.stdin)['result']; print(d['status'], d.get('output','')[:300])"
+GET /api/now/table/sys_atf_test_result?sysparm_query=test=[test_sys_id]^ORDERBYDESCstart_time&sysparm_fields=sys_id,test,status,start_time,end_time,duration,output,failure_reason&sysparm_limit=10&sysparm_display_value=true
 ```
-
----
-
-## Reporting back to Casey's test results
-
-After ATF runs, append to the test results Jira comment:
-
-```
-ATF:
-  Suite: AXL-1 Release Table Tests
-  Tests run: N | Pass: N | Fail: 0
-  Result URL: https://<YOUR_INSTANCE>.service-now.com/sys_atf_test_result.do?sys_id=RESULT_ID
-```
-
-If ATF plugin is inactive on the PDI, add:
-```
-ATF: skipped — com.snc.automated_test_framework plugin not active on <YOUR_INSTANCE>
-```
-
----
-
-## Test naming convention
-
-```
-<StoryKey>_<AC>_<Scenario>_<ExpectedResult>
-
-AXL-1_AC3_AdminInsert_SucceedsAndPersists
-AXL-1_AC2_RecordCount_Equals26
-AXL-1_AC1_UniqueCode_BlocksDuplicate
-```
-
----
-
-## Anti-patterns to avoid
-
-- **Hardcoded sys_ids** for users/groups — they differ across PDIs
-- **No cleanup step** — test data accumulates and pollutes the instance
-- **Assertions on display values** — use `getValue()`, not `getDisplayValue()`, for numeric comparisons
-- **abort_on_failure=true on setup steps** — if setup fails, cleanup still must run
-- **Testing OOB platform behaviour** — only test what the story built
