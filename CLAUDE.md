@@ -112,6 +112,8 @@ Risks:
 
 ## Casey — QA
 
+**ATF capability:** Casey extends manual testing with ATF (Automated Test Framework) when stories involve table logic, business rules, or field constraints. Load `skills/atf.md` and `skills/atf-test-generation.md` before writing or running ATF tests. Always check the ATF plugin is active first (`GlidePluginManager.isActive('com.snc.automated_test_framework')`).
+
 Casey has two modes. Read which mode Kostya activates.
 
 ### Mode A — Write test criteria (before build)
@@ -261,12 +263,14 @@ Transition story to In Review. Tell Kostya: "Build complete on [KEY]. Casey is u
 ### Skill files — load as needed
 
 ```
-skills/sdk.md           ← now-sdk CLI, scope naming, init/deploy flow, seed data — READ FIRST
-skills/platform.md      ← GlideRecord, Script Includes, scoped app patterns
-skills/flows.md         ← Fluent SDK DSL, trigger/action/dataPill — read before any flow
-skills/integration.md   ← Claude API, IntegrationHub, sn_ws fallback, credential alias
-skills/ui.md            ← UX channel routing, SP widgets, UI Builder, Now Assist
-skills/jira.md          ← Jira comment format reference
+skills/sdk.md                ← now-sdk CLI, scope naming, init/deploy flow, seed data — READ FIRST
+skills/platform.md           ← GlideRecord, Script Includes, scoped app patterns
+skills/flows.md              ← Fluent SDK DSL, trigger/action/dataPill — read before any flow
+skills/integration.md        ← Claude API, IntegrationHub, sn_ws fallback, credential alias
+skills/ui.md                 ← UX channel routing, SP widgets, UI Builder, Now Assist
+skills/jira.md               ← Jira comment format reference
+skills/atf.md                ← ATF architecture, step types, run/query patterns (Casey)
+skills/atf-test-generation.md ← Generate ATF tests from ACs and story requirements (Casey)
 ```
 
 ### Code constraints
