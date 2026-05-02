@@ -189,14 +189,15 @@ Commit: <SHA>
 ### Orient on session start
 ```
 1. Read [STORY-XX] in Jira — story description + all comments
-2. Load skills as needed (see below)
-3. Confirm: pwd must be axiom-lite/app/
-4. cat now.config.json → confirm scope
+2. Load skills/sdk.md — scope naming, init flow, seed data, error reference
+3. Load other skills as needed (see below)
+4. Confirm: pwd must be axiom-lite/ (repo root — that IS the project root)
+5. cat now.config.json → confirm scope (must be x_9274_<appname>)
 ```
 
 ### Build commands
 
-Run all commands from `app/`. Never from the repo root.
+Run all commands from the **repo root** (`axiom-lite/`). That is where `now.config.json` and `package.json` live.
 
 ```bash
 npm run build && npm run deploy     # full loop — use constantly
@@ -213,7 +214,7 @@ now-sdk auth --use <profile>        # switch PDI profile
 # SDK DSL reference — run before guessing any API shape
 npx @servicenow/sdk explain wfa-flow-guide --format=raw
 
-git add app/src/
+git add src/
 git commit -m "[JORDAN] feat: <what was built> (<STORY-KEY>)"
 git push origin main
 ```
@@ -223,8 +224,8 @@ git push origin main
 For every component, without exception:
 
 ```
-0. pwd → must end in app/
-   cat now.config.json → confirm scope
+0. pwd → must be axiom-lite/ (repo root)
+   cat now.config.json → confirm scope is x_9274_<appname>
 1. Write or modify source in src/fluent/ or src/server/
 2. npm run build    — read ENTIRE output, fix all errors
 3. npm run deploy   — read ENTIRE output, fix all errors
@@ -260,6 +261,7 @@ Transition story to In Review. Tell Kostya: "Build complete on [KEY]. Casey is u
 ### Skill files — load as needed
 
 ```
+skills/sdk.md           ← now-sdk CLI, scope naming, init/deploy flow, seed data — READ FIRST
 skills/platform.md      ← GlideRecord, Script Includes, scoped app patterns
 skills/flows.md         ← Fluent SDK DSL, trigger/action/dataPill — read before any flow
 skills/integration.md   ← Claude API, IntegrationHub, sn_ws fallback, credential alias
@@ -280,9 +282,9 @@ skills/jira.md          ← Jira comment format reference
 
 | Error | Cause | Fix |
 |---|---|---|
-| `application was null` on deploy | App not in AES | Create app in AES first |
-| `Could not find package.json` | Wrong directory | `cd app/` then retry |
-| `Invalid scope` | scopeName mismatch | Check now.config.json vs AES — never guess |
+| `application was null` on deploy | Scope in `now.config.json` doesn't match any app on PDI | Re-run `snc init --scopeName x_9274_<app> --auth <profile>` to create the app; see `skills/sdk.md` |
+| `Could not find package.json` | Wrong directory | Run from repo root (`axiom-lite/`), not a subdirectory |
+| `Invalid scope` | scopeName mismatch / wrong vendor prefix | Vendor prefix for dev390976 is **9274** — scope must be `x_9274_<appname>`; see `skills/sdk.md` |
 | `Cannot find module '@servicenow/sdk'` | Missing deps | `npm run types` then `npm install` |
 | `Flow import from wrong module` | Imported from `/core` | Import from `@servicenow/sdk/automation` |
 | `active is not valid in FlowConfigProps` | Unsupported field | Remove `active` — activate in Flow Designer after deploy |
@@ -294,9 +296,9 @@ skills/jira.md          ← Jira comment format reference
 ## Jira project
 
 - **Instance:** configured in `.claude/settings.local.json`
-- **Project key:** AXM (or as instructed by Kostya)
-- **Story type:** Story
-- **Workflow:** Backlog → In Progress → In Review → Done
+- **Project key:** AXL (AXIOM LITE) — not AXM
+- **Issue type:** Task (AXL has no Story type — use Task)
+- **Workflow:** To Do → In Progress → Done (no In Review state in AXL)
 
 ---
 

@@ -49,12 +49,12 @@ split them across turns or sessions.
 ### START comment format
 
 ```
-[AXM-XX] Starting — <one-line description>
+[AXL-XX] Starting — <one-line description>
 PERSONA: <Persona name> (<role>)
 STATUS: In Progress — <entry conditions met / blocked / waiting for persona>
 
 Entry conditions met:
-  <AXM-YY> (<dependency>) DONE ✅ — <artifact and commit>
+  <AXL-YY> (<dependency>) DONE ✅ — <artifact and commit>
   <or: list what is still pending>
 
 Expected output: <file path>
@@ -87,11 +87,11 @@ Every ticket transitioned to `Done`, `Closed`, or `Won't Do` **must** receive a 
 ### Format
 
 ```
-[CLOSED] AXM-XX — <one-line outcome>
+[CLOSED] AXL-XX — <one-line outcome>
 
 WORKED BY:     <Persona>  (and <Persona> if collaborative)
 DURATION:      <e.g. 35 min, or T+1:20 → T+1:55>
-RESOLUTION:    Done | Won't Do | Superseded by AXM-YY
+RESOLUTION:    Done | Won't Do | Superseded by AXL-YY
 
 KEY TAKEAWAYS:
   - <takeaway 1 — really concise, one line>
@@ -106,7 +106,7 @@ ARTIFACT_URL:  <full GitHub URL>      OR   N/A
 COMMIT:        <short SHA>            OR   N/A
 
 FOLLOW-UPS:
-  - <new ticket if any, e.g. AXM-YY>  OR   None
+  - <new ticket if any, e.g. AXL-YY>  OR   None
 
 HANDOVER LOG:  <link to HANDOVERS.md entry if applicable>
 ```
@@ -213,7 +213,7 @@ A closure is a logged event. The flow is:
 1. **Write the closure comment** in Jira (use the format above).
 2. **Append to `runs/[run]/logs/ACTIVITY.log`**:
    ```
-   YYYY-MM-DDTHH:MM:SSZ | [CLOSED] | <Persona> | AXM-XX | <one-line outcome>
+   YYYY-MM-DDTHH:MM:SSZ | [CLOSED] | <Persona> | AXL-XX | <one-line outcome>
    ```
 3. **If closure follows a handover**, the matching `HANDOVERS.md` entry's `STATUS` field is updated from `Complete` to `Closed` and the closure comment URL is appended.
 4. **Transition the Jira ticket** — only after steps 1–3 are done.
@@ -241,7 +241,7 @@ You may inherit a ticket someone else started. Two scenarios:
 You write the closure comment. `WORKED BY` lists both you *and* the original starter. Takeaways must cover the full ticket lifetime, not just your portion.
 
 **Scenario B — You close it without finishing the original scope.**
-Use `RESOLUTION: Won't Do` or `RESOLUTION: Superseded by AXM-YY`. State explicitly in `KEY TAKEAWAYS` what was done, what wasn't, and why. Never silently shrink scope.
+Use `RESOLUTION: Won't Do` or `RESOLUTION: Superseded by AXL-YY`. State explicitly in `KEY TAKEAWAYS` what was done, what wasn't, and why. Never silently shrink scope.
 
 ---
 
@@ -281,11 +281,11 @@ A clean Jira board at submission time is part of the deliverable. Judges will lo
 Keep this nearby. Copy, fill, post.
 
 ```
-[CLOSED] AXM-XX — <outcome>
+[CLOSED] AXL-XX — <outcome>
 
 WORKED BY:
 DURATION:
-RESOLUTION:    Done | Won't Do | Superseded by AXM-YY
+RESOLUTION:    Done | Won't Do | Superseded by AXL-YY
 
 KEY TAKEAWAYS:
   -
