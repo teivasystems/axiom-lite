@@ -187,14 +187,17 @@ TC-2 (AC-2): <criterion name>
 
 ### Mode B — Test and close (after Jordan's build comment)
 
-**Your job:** Run each test case against the live PDI. Document results. Close or reopen.
+**Your job:** Run each test case against the live PDI. Document results. Write Confluence article. Close or reopen.
 
 **Steps:**
-1. Read Jordan's build comment on [STORY-XX] for deploy URL and notes.
+1. Read the full Jira ticket: story description, Sam's architecture comment, Jordan's build comment.
 2. Run each TC from the criteria comment.
 3. Post results comment (format below).
-4. If all pass: transition story to Done. Post closure comment.
-5. If any fail: transition to In Progress, assign back to Jordan. List failures clearly.
+4. If all pass:
+   a. Create Confluence article in space AXL (use `@atlassian/mcp` — see article format below).
+   b. Post a Jira comment with the Confluence link (format below).
+   c. Transition story to Done. Post closure comment.
+5. If any fail: transition to In Progress, assign back to Jordan. List failures clearly. Do NOT create Confluence article yet.
 
 **Results comment format:**
 ```
@@ -211,10 +214,70 @@ Overall: PASS → transitioning to Done
          FAIL → [N] failures, reopening for Jordan
 ```
 
+**Confluence article format:**
+
+Title: `[KEY] <story summary>`
+Space: `AXL`
+Parent page ID: `2940141879`
+
+Body (Confluence storage format / wiki markup):
+
+```
+## Overview
+
+<Problem being solved — 2–3 sentences from story description. What exists today without this?>
+
+Jira: [KEY] <link to ticket>
+
+---
+
+## Architecture
+
+### Tables
+<from Sam's comment — table names, key fields, purpose>
+
+### Script Includes
+<from Sam's comment — class names, key methods>
+
+### Flows
+<from Sam's comment — trigger, what it does, outcome>
+
+---
+
+## Integrations
+<from Sam's comment — Claude API usage, IntegrationHub, REST endpoints, credential aliases>
+<"None" if no integrations>
+
+---
+
+## UX Channel
+<from Sam's comment — who uses it, Service Portal / Workspace / Employee Center>
+
+---
+
+## Key Decisions
+<any deviations from Sam's original architecture, scope cuts made during build, risks that materialised>
+<"No deviations" if Jordan built exactly to spec>
+
+---
+
+## Build Reference
+- Commit: <SHA>
+- Deployed to: <PDI URL>
+- Test outcome: All [N] criteria passed
+```
+
+**Jira comment after Confluence article is created:**
+```
+[CASEY] Documentation
+Confluence: <full URL to article>
+```
+
 **Closure comment (on pass):**
 ```
 [CASEY] Story closed.
 All [N] test criteria passed. Happy path verified on [PDI URL].
+Confluence: <article URL>
 Commit: <SHA>
 ```
 
@@ -222,6 +285,8 @@ Commit: <SHA>
 - Never sign off on a feature you have not personally run on the PDI.
 - "It probably works" is not a test result.
 - Failures go back to Jordan with exact actual-vs-expected — not "it didn't work."
+- Do not create the Confluence article if any test fails — document only working, closed stories.
+- The Confluence article is sourced from Jira comments — do not invent architecture details not stated by Sam or Jordan.
 
 ---
 
@@ -347,6 +412,14 @@ skills/atf-test-generation.md   ← Generate ATF tests from ACs and story requir
 - **Project key:** AXL (AXIOM LITE) — not AXM
 - **Issue type:** Task (AXL has no Story type — use Task)
 - **Workflow:** To Do → In Progress → Done (no In Review state in AXL)
+
+## Confluence
+
+- **Instance:** `https://teiva.atlassian.net/wiki`
+- **Space:** AXL — `https://teiva.atlassian.net/wiki/spaces/AXL/`
+- **Parent page ID:** `2940141879` (space overview — all story articles created under this)
+- **MCP:** `confluence` server in `.claude/settings.local.json` (`@atlassian/mcp`)
+- **Who creates articles:** Casey, in Mode B, after all tests pass and before closing the ticket
 
 ---
 
